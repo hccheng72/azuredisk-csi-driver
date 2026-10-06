@@ -75,6 +75,7 @@ func (t *PreProvisionedDanglingAttachVolumeTest) Run(ctx context.Context, client
 				Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 			},
 		},
+		VolumeContext: t.VolumeContext,
 	}
 	_, err := t.AzureDiskDriver.ControllerPublishVolume(ctx, req)
 	framework.ExpectNoError(err)

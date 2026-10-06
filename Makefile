@@ -14,7 +14,7 @@
 
 PKG = sigs.k8s.io/azuredisk-csi-driver
 GIT_COMMIT ?= $(shell git rev-parse HEAD)
-REGISTRY ?= andyzhangx
+REGISTRY ?= huichanacr.azurecr.io
 REGISTRY_NAME ?= $(shell echo $(REGISTRY) | sed "s/.azurecr.io//g")
 IMAGE_NAME ?= azuredisk-csi
 PLUGIN_NAME = azurediskplugin
@@ -33,7 +33,7 @@ REV = $(shell git describe --long --tags --dirty)
 BUILD_DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 ENABLE_TOPOLOGY ?= false
 LDFLAGS ?= "-X ${PKG}/pkg/azuredisk.driverVersion=${IMAGE_VERSION} -X ${PKG}/pkg/azuredisk.gitCommit=${GIT_COMMIT} -X ${PKG}/pkg/azuredisk.buildDate=${BUILD_DATE} -extldflags "-static"" ${GOTAGS}
-E2E_HELM_OPTIONS ?= --set image.azuredisk.repository=$(REGISTRY)/$(IMAGE_NAME) --set image.azuredisk.tag=$(IMAGE_VERSION) --set image.azuredisk.pullPolicy=Always --set driver.featureGates.KataMount=false --set driver.userAgentSuffix="e2e-test" --set snapshot.VolumeSnapshotClass.enabled=true --set snapshot.enabled=true --set node.getNodeIDFromIMDS=true --set controller.runOnControlPlane=true --set controller.replicas=1 --set snapshot.snapshotController.replicas=1
+E2E_HELM_OPTIONS ?= --take-ownership --set image.azuredisk.repository=$(REGISTRY)/$(IMAGE_NAME) --set image.azuredisk.tag=$(IMAGE_VERSION) --set image.azuredisk.pullPolicy=Always --set node.enableKataMount=true --set driver.userAgentSuffix="e2e-test" --set snapshot.VolumeSnapshotClass.enabled=true --set snapshot.enabled=true --set node.getNodeIDFromIMDS=true --set controller.replicas=1 --set snapshot.snapshotController.replicas=1 --set workloadIdentity.clientID="5c2bf8c0-5f5b-41a9-b45b-cf32af66c8a1" --set workloadIdentity.tenantID="72f988bf-86f1-41af-91ab-2d7cd011db47" --set driver.featureGates.NodeDrivenAttachDetach=true
 E2E_HELM_OPTIONS += ${EXTRA_HELM_OPTIONS}
 ifdef DISABLE_ZONE
 E2E_HELM_OPTIONS += --set node.supportZone=false
@@ -57,12 +57,12 @@ DOCKER_CLI_EXPERIMENTAL = enabled
 export GOPATH GOBIN GO111MODULE DOCKER_CLI_EXPERIMENTAL
 
 # Generate all combination of all OS, ARCH, and OSVERSIONS for iteration
-ALL_OS = linux windows
-ALL_ARCH.linux = amd64 arm64
+ALL_OS = linux #windows
+ALL_ARCH.linux = amd64 #arm64
 ALL_OS_ARCH.linux = $(foreach arch, ${ALL_ARCH.linux}, linux-$(arch))
-ALL_ARCH.windows = amd64
-ALL_OSVERSIONS.windows := 1809 ltsc2022
-ALL_OS_ARCH.windows = $(foreach arch, $(ALL_ARCH.windows), $(foreach osversion, ${ALL_OSVERSIONS.windows}, windows-${osversion}-${arch}))
+#ALL_ARCH.windows = amd64
+#ALL_OSVERSIONS.windows := 1809 ltsc2022
+#ALL_OS_ARCH.windows = $(foreach arch, $(ALL_ARCH.windows), $(foreach osversion, ${ALL_OSVERSIONS.windows}, windows-${osversion}-${arch}))
 ALL_OS_ARCH = $(foreach os, $(ALL_OS), ${ALL_OS_ARCH.${os}})
 
 # If set to true Windows containers will run as HostProcessContainers

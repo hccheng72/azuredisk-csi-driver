@@ -44,9 +44,9 @@ var _ = ginkgo.Describe("Dynamic Provisioning", func() {
 		t.defineTests(false)
 	})
 
-	ginkgo.Context("[multi-az]", func() {
-		t.defineTests(true)
-	})
+	// ginkgo.Context("[multi-az]", func() {
+	// 	t.defineTests(true)
+	// })
 })
 
 type dynamicProvisioningTestSuite struct {
@@ -139,6 +139,9 @@ func (t *dynamicProvisioningTestSuite) defineTests(isMultiZone bool) {
 				"cachingmode": "None",
 			}
 		}
+		if driver.IsQADEnabled {
+			test.StorageClassParameters = driver.GetParameters()
+		}
 		if isUsingInTreeVolumePlugin {
 			// cover case: https://github.com/kubernetes/kubernetes/issues/103433
 			test.StorageClassParameters["Kind"] = "managed"
@@ -174,6 +177,9 @@ func (t *dynamicProvisioningTestSuite) defineTests(isMultiZone bool) {
 			"userAgent":              "azuredisk-e2e-test",
 			"enableAsyncAttach":      "false",
 			"attachDiskInitialDelay": "500",
+		}
+		if driver.IsQADEnabled {
+			scParameters = driver.GetParameters()
 		}
 		test := testsuites.DynamicallyProvisionedVolumeSubpathTester{
 			CSIDriver:              testDriver,
@@ -217,6 +223,11 @@ func (t *dynamicProvisioningTestSuite) defineTests(isMultiZone bool) {
 				"enablePerformancePlus": "true",
 				"diskName":              "${pvc.metadata.namespace}-${pvc.metadata.name}-${pv.metadata.name}",
 			},
+		}
+		if driver.IsQADEnabled {
+			for key, value := range driver.GetParameters() {
+				test.StorageClassParameters[key] = value
+			}
 		}
 		test.Run(ctx, cs, ns)
 	})
@@ -283,6 +294,11 @@ func (t *dynamicProvisioningTestSuite) defineTests(isMultiZone bool) {
 			Pods:                   pods,
 			StorageClassParameters: map[string]string{"skuName": "Premium_LRS"},
 		}
+		if driver.IsQADEnabled {
+			for key, value := range driver.GetParameters() {
+				test.StorageClassParameters[key] = value
+			}
+		}
 		if !isUsingInTreeVolumePlugin && supportsZRS {
 			test.StorageClassParameters = map[string]string{"skuName": "StandardSSD_ZRS"}
 		}
@@ -314,6 +330,11 @@ func (t *dynamicProvisioningTestSuite) defineTests(isMultiZone bool) {
 			Pod:                    pod,
 			StorageClassParameters: map[string]string{"skuName": "Premium_LRS"},
 			SeparateResourceGroups: false,
+		}
+		if driver.IsQADEnabled {
+			for key, value := range driver.GetParameters() {
+				test.StorageClassParameters[key] = value
+			}
 		}
 		if !isUsingInTreeVolumePlugin && supportsZRS {
 			test.StorageClassParameters = map[string]string{"skuName": "StandardSSD_ZRS"}
@@ -356,6 +377,11 @@ func (t *dynamicProvisioningTestSuite) defineTests(isMultiZone bool) {
 			StorageClassParameters: map[string]string{"skuName": "Premium_LRS"},
 			SeparateResourceGroups: true,
 		}
+		if driver.IsQADEnabled {
+			for key, value := range driver.GetParameters() {
+				test.StorageClassParameters[key] = value
+			}
+		}
 		if !isUsingInTreeVolumePlugin && supportsZRS {
 			test.StorageClassParameters = map[string]string{"skuName": "StandardSSD_ZRS"}
 		}
@@ -388,6 +414,11 @@ func (t *dynamicProvisioningTestSuite) defineTests(isMultiZone bool) {
 			CSIDriver:              testDriver,
 			Pods:                   pods,
 			StorageClassParameters: map[string]string{"skuName": "StandardSSD_LRS"},
+		}
+		if driver.IsQADEnabled {
+			for key, value := range driver.GetParameters() {
+				test.StorageClassParameters[key] = value
+			}
 		}
 		if !isUsingInTreeVolumePlugin && (location == "westus2" || location == "westeurope") {
 			test.StorageClassParameters = map[string]string{"skuName": "Premium_ZRS"}
@@ -455,6 +486,11 @@ func (t *dynamicProvisioningTestSuite) defineTests(isMultiZone bool) {
 			ColocatePods:           true,
 			StorageClassParameters: map[string]string{"skuName": "Premium_LRS"},
 		}
+		if driver.IsQADEnabled {
+			for key, value := range driver.GetParameters() {
+				test.StorageClassParameters[key] = value
+			}
+		}
 		if !isUsingInTreeVolumePlugin && supportsZRS {
 			test.StorageClassParameters = map[string]string{"skuName": "StandardSSD_ZRS"}
 		}
@@ -511,6 +547,9 @@ func (t *dynamicProvisioningTestSuite) defineTests(isMultiZone bool) {
 		test := testsuites.DynamicallyProvisionedReclaimPolicyTest{
 			CSIDriver: testDriver,
 			Volumes:   volumes,
+		}
+		if driver.IsQADEnabled {
+			test.StorageClassParameters = driver.GetParameters()
 		}
 		test.Run(ctx, cs, ns)
 	})

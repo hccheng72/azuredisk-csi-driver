@@ -1,0 +1,46 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-qad
+spec:
+  podManagementPolicy: Parallel
+  serviceName: nginx-qad
+  replicas: 500
+  selector:
+    matchLabels:
+      app: nginx-qad
+  template:
+    metadata:
+      labels:
+        app: nginx-qad
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      # topologySpreadConstraints:
+      #   - maxSkew: 1
+      #     topologyKey: kubernetes.io/hostname
+      #     whenUnsatisfiable: DoNotSchedule
+      #     labelSelector:
+      #       matchLabels:
+      #         app: nginx-qad
+      containers:
+        - name: nginx
+          image: mcr.microsoft.com/mirror/docker/library/nginx:1.23
+          command:
+            - "/bin/sh"
+            - "-c"
+            - while true; do echo $(date) >> /mnt/azuredisk/outfile; sleep 1; done
+          volumeMounts:
+            - name: persistent-storage
+              mountPath: /mnt/azuredisk
+  volumeClaimTemplates:
+    - metadata:
+        name: persistent-storage
+      spec:
+        storageClassName: managed-csi-qad
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi

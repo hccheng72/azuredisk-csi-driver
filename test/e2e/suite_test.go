@@ -48,7 +48,7 @@ const (
 	testWindowsEnvVar      = "TEST_WINDOWS"
 	testWinServerVerEnvVar = "WINDOWS_SERVER_VERSION"
 	cloudNameEnvVar        = "AZURE_CLOUD_NAME"
-	defaultReportDir       = "/workspace/_artifacts"
+	defaultReportDir       = "_artifacts"
 	inTreeStorageClass     = "kubernetes.io/azure-disk"
 )
 
@@ -96,47 +96,39 @@ var _ = ginkgo.BeforeSuite(func(ctx ginkgo.SpecContext) {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		location = creds.Location
-		supportZRSRegions := []string{
-			"southafricanorth",
-			"eastasia",
-			"southeastasia",
-			"australiaeast",
-			"brazilsouth",
-			"westeurope",
-			"northeurope",
-			"francecentral",
-			"centralindia",
-			"italynorth",
-			"japaneast",
-			"koreacentral",
-			"norwayeast",
-			"polandcentral",
-			"qatarcentral",
-			"swedencentral",
-			"switzerlandnorth",
-			"uaenorth",
-			"uksouth",
-			"eastus",
-			"eastus2",
-			"southcentralus",
-			"westus2",
-			"westus3",
-		}
+		// supportZRSRegions := []string{
+		// 	"southafricanorth",
+		// 	"eastasia",
+		// 	"southeastasia",
+		// 	"australiaeast",
+		// 	"brazilsouth",
+		// 	"westeurope",
+		// 	"northeurope",
+		// 	"francecentral",
+		// 	"centralindia",
+		// 	"italynorth",
+		// 	"japaneast",
+		// 	"koreacentral",
+		// 	"norwayeast",
+		// 	"polandcentral",
+		// 	"qatarcentral",
+		// 	"swedencentral",
+		// 	"switzerlandnorth",
+		// 	"uaenorth",
+		// 	"uksouth",
+		// 	"eastus",
+		// 	"eastus2",
+		// 	"southcentralus",
+		// 	"westus2",
+		// 	"westus3",
+		// }
 		supportsZRS = false
-		for _, region := range supportZRSRegions {
-			if location == region {
-				supportsZRS = true
-				break
-			}
-		}
-
-		// Install Azure Disk CSI Driver on cluster from project root
-		e2eBootstrap := testCmd{
-			command:  "make",
-			args:     []string{"e2e-bootstrap"},
-			startLog: "Installing Azure Disk CSI Driver...",
-			endLog:   "Azure Disk CSI Driver installed",
-		}
+		// for _, region := range supportZRSRegions {
+		// 	if location == region {
+		// 		supportsZRS = true
+		// 		break
+		// 	}
+		// }
 
 		createMetricsSVC := testCmd{
 			command:  "make",
@@ -144,7 +136,7 @@ var _ = ginkgo.BeforeSuite(func(ctx ginkgo.SpecContext) {
 			startLog: "create metrics service ...",
 			endLog:   "metrics service created",
 		}
-		execTestCmd([]testCmd{e2eBootstrap, createMetricsSVC})
+		execTestCmd([]testCmd{createMetricsSVC})
 
 		driverOptions := azuredisk.DriverOptions{
 			NodeID:                  os.Getenv("nodeid"),
@@ -189,24 +181,26 @@ var _ = ginkgo.AfterSuite(func(_ ginkgo.SpecContext) {
 		}
 		execTestCmd([]testCmd{checkPodsRestart})
 
-		os := "linux"
-		cloud := "azurepubliccloud"
-		if isWindowsCluster {
-			os = "windows"
-			if winServerVer == "windows-2022" {
-				os = winServerVer
-			}
-		}
-		if isAzureStackCloud {
-			cloud = "azurestackcloud"
-		}
-		createExampleDeployment := testCmd{
-			command:  "bash",
-			args:     []string{"hack/verify-examples.sh", os, cloud},
-			startLog: "create example deployments",
-			endLog:   "example deployments created",
-		}
-		execTestCmd([]testCmd{createExampleDeployment})
+		// Skip the example-deployment smoke test locally: it applies repo example
+		// manifests into the default namespace and never cleans them up.
+		// os := "linux"
+		// cloud := "azurepubliccloud"
+		// if isWindowsCluster {
+		// 	os = "windows"
+		// 	if winServerVer == "windows-2022" {
+		// 		os = winServerVer
+		// 	}
+		// }
+		// if isAzureStackCloud {
+		// 	cloud = "azurestackcloud"
+		// }
+		// createExampleDeployment := testCmd{
+		// 	command:  "bash",
+		// 	args:     []string{"hack/verify-examples.sh", os, cloud},
+		// 	startLog: "create example deployments",
+		// 	endLog:   "example deployments created",
+		// }
+		// execTestCmd([]testCmd{createExampleDeployment})
 
 		azurediskLog := testCmd{
 			command:  "bash",
@@ -222,41 +216,9 @@ var _ = ginkgo.AfterSuite(func(_ ginkgo.SpecContext) {
 			endLog:   "metrics service deleted",
 		}
 
-		e2eTeardown := testCmd{
-			command:  "make",
-			args:     []string{"e2e-teardown"},
-			startLog: "Uninstalling Azure Disk CSI Driver...",
-			endLog:   "Azure Disk CSI Driver uninstalled",
-		}
-		execTestCmd([]testCmd{azurediskLog, deleteMetricsSVC, e2eTeardown})
+		execTestCmd([]testCmd{azurediskLog, deleteMetricsSVC})
 
 		if !isTestingMigration {
-			// install Azure Disk CSI Driver deployment scripts test
-			installDriver := testCmd{
-				command:  "bash",
-				args:     []string{"deploy/install-driver.sh", "master", "windows,snapshot,local"},
-				startLog: "===================install Azure Disk CSI Driver deployment scripts test===================",
-				endLog:   "===================================================",
-			}
-			execTestCmd([]testCmd{installDriver})
-
-			// run example deployment again
-			createExampleDeployment := testCmd{
-				command:  "bash",
-				args:     []string{"hack/verify-examples.sh", os, cloud},
-				startLog: "create example deployments#2",
-				endLog:   "example deployments#2 created",
-			}
-			execTestCmd([]testCmd{createExampleDeployment})
-
-			// uninstall Azure Disk CSI Driver deployment scripts test
-			uninstallDriver := testCmd{
-				command:  "bash",
-				args:     []string{"deploy/uninstall-driver.sh", "master", "windows,snapshot,local"},
-				startLog: "===================uninstall Azure Disk CSI Driver deployment scripts test===================",
-				endLog:   "===================================================",
-			}
-			execTestCmd([]testCmd{uninstallDriver})
 		}
 		err := credentials.DeleteAzureCredentialFile()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())

@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"fmt"
+	"os"
 
 	"sigs.k8s.io/azuredisk-csi-driver/test/e2e/driver"
 	"sigs.k8s.io/azuredisk-csi-driver/test/e2e/testsuites"
@@ -32,6 +33,8 @@ import (
 
 const (
 	defaultDiskSize = int64(10)
+	// preProvisionedVolumeIDEnvVar supplies an existing disk URI to run pre-provisioned tests against instead of creating a new disk.
+	preProvisionedVolumeIDEnvVar = "PRE_PROVISIONED_VOLUME_ID"
 )
 
 var _ = ginkgo.Describe("Pre-Provisioned", func() {
@@ -73,13 +76,25 @@ var _ = ginkgo.Describe("Pre-Provisioned", func() {
 			// Skip these tests until above is fixed.
 			skipIfUsingInTreeVolumePlugin()
 
-			req := makeCreateVolumeReq("pre-provisioned-readOnly", defaultDiskSize)
-			resp, err := azurediskDriver.CreateVolume(ctx, req)
-			if err != nil {
-				ginkgo.Fail(fmt.Sprintf("create volume error: %v", err))
+			var volumeContext map[string]string
+			if existingVolumeID := os.Getenv(preProvisionedVolumeIDEnvVar); existingVolumeID != "" {
+				// Use a disk that already exists; never create or delete it.
+				volumeID = existingVolumeID
+				skipVolumeDeletion = true
+				if driver.IsQADEnabled {
+					volumeContext = map[string]string{"qadEnabled": "true"}
+				}
+				ginkgo.By(fmt.Sprintf("Using pre-existing AzureDisk volume: %q\n", volumeID))
+			} else {
+				req := makeCreateVolumeReq("pre-provisioned-readOnly", defaultDiskSize)
+				resp, err := azurediskDriver.CreateVolume(ctx, req)
+				if err != nil {
+					ginkgo.Fail(fmt.Sprintf("create volume error: %v", err))
+				}
+				volumeID = resp.Volume.VolumeId
+				volumeContext = resp.Volume.VolumeContext
+				ginkgo.By(fmt.Sprintf("Successfully provisioned AzureDisk volume: %q\n", volumeID))
 			}
-			volumeID = resp.Volume.VolumeId
-			ginkgo.By(fmt.Sprintf("Successfully provisioned AzureDisk volume: %q\n", volumeID))
 
 			diskSize := fmt.Sprintf("%dGi", defaultDiskSize)
 			pods := []testsuites.PodDetails{
@@ -103,8 +118,9 @@ var _ = ginkgo.Describe("Pre-Provisioned", func() {
 				},
 			}
 			test := testsuites.PreProvisionedReadOnlyVolumeTest{
-				CSIDriver: testDriver,
-				Pods:      pods,
+				CSIDriver:     testDriver,
+				Pods:          pods,
+				VolumeContext: volumeContext,
 			}
 			test.Run(ctx, cs, ns)
 		})
@@ -114,13 +130,25 @@ var _ = ginkgo.Describe("Pre-Provisioned", func() {
 			// Skip these tests until above is fixed.
 			skipIfUsingInTreeVolumePlugin()
 
-			req := makeCreateVolumeReq("pre-provisioned-retain-reclaimPolicy", defaultDiskSize)
-			resp, err := azurediskDriver.CreateVolume(ctx, req)
-			if err != nil {
-				ginkgo.Fail(fmt.Sprintf("create volume error: %v", err))
+			var volumeContext map[string]string
+			if existingVolumeID := os.Getenv(preProvisionedVolumeIDEnvVar); existingVolumeID != "" {
+				// Use a disk that already exists; never create or delete it.
+				volumeID = existingVolumeID
+				skipVolumeDeletion = true
+				if driver.IsQADEnabled {
+					volumeContext = map[string]string{"qadEnabled": "true"}
+				}
+				ginkgo.By(fmt.Sprintf("Using pre-existing AzureDisk volume: %q\n", volumeID))
+			} else {
+				req := makeCreateVolumeReq("pre-provisioned-retain-reclaimPolicy", defaultDiskSize)
+				resp, err := azurediskDriver.CreateVolume(ctx, req)
+				if err != nil {
+					ginkgo.Fail(fmt.Sprintf("create volume error: %v", err))
+				}
+				volumeID = resp.Volume.VolumeId
+				volumeContext = resp.Volume.VolumeContext
+				ginkgo.By(fmt.Sprintf("Successfully provisioned AzureDisk volume: %q\n", volumeID))
 			}
-			volumeID = resp.Volume.VolumeId
-			ginkgo.By(fmt.Sprintf("Successfully provisioned AzureDisk volume: %q\n", volumeID))
 
 			diskSize := fmt.Sprintf("%dGi", defaultDiskSize)
 			reclaimPolicy := v1.PersistentVolumeReclaimRetain
@@ -136,7 +164,7 @@ var _ = ginkgo.Describe("Pre-Provisioned", func() {
 			test := testsuites.PreProvisionedReclaimPolicyTest{
 				CSIDriver:     testDriver,
 				Volumes:       volumes,
-				VolumeContext: resp.Volume.VolumeContext,
+				VolumeContext: volumeContext,
 			}
 			test.Run(ctx, cs, ns)
 		})
@@ -252,17 +280,37 @@ var _ = ginkgo.Describe("Pre-Provisioned", func() {
 		ginkgo.It("should succeed when reattaching a disk to a new node on DanglingAttachError [disk.csi.azure.com]", func(ctx ginkgo.SpecContext) {
 			skipIfUsingInTreeVolumePlugin()
 			skipIfOnAzureStackCloud()
+<<<<<<< Updated upstream
 			req := makeCreateVolumeReq("reattach-disk-multiple-nodes", defaultDiskSize)
 			req.Parameters["cachingMode"] = "None"
 			req.VolumeCapabilities[0].AccessType = &csi.VolumeCapability_Block{
 				Block: &csi.VolumeCapability_BlockVolume{},
+=======
+
+			var volumeContext map[string]string
+			if existingVolumeID := os.Getenv(preProvisionedVolumeIDEnvVar); existingVolumeID != "" {
+				// Use a disk that already exists; never create or delete it.
+				volumeID = existingVolumeID
+				skipVolumeDeletion = true
+				if driver.IsQADEnabled {
+					volumeContext = map[string]string{"qadEnabled": "true"}
+				}
+				ginkgo.By(fmt.Sprintf("Using pre-existing AzureDisk volume: %q\n", volumeID))
+			} else {
+				req := makeCreateVolumeReq("reattach-disk-multiple-nodes", defaultDiskSize)
+				req.Parameters["cachingMode"] = "None"
+				req.VolumeCapabilities[0].AccessType = &csi.VolumeCapability_Block{
+					Block: &csi.VolumeCapability_BlockVolume{},
+				}
+				resp, err := azurediskDriver.CreateVolume(ctx, req)
+				if err != nil {
+					ginkgo.Fail(fmt.Sprintf("create volume error: %v", err))
+				}
+				volumeID = resp.Volume.VolumeId
+				volumeContext = resp.Volume.VolumeContext
+				ginkgo.By(fmt.Sprintf("Successfully provisioned a shared disk volume: %q\n", volumeID))
+>>>>>>> Stashed changes
 			}
-			resp, err := azurediskDriver.CreateVolume(ctx, req)
-			if err != nil {
-				ginkgo.Fail(fmt.Sprintf("create volume error: %v", err))
-			}
-			volumeID = resp.Volume.VolumeId
-			ginkgo.By(fmt.Sprintf("Successfully provisioned a shared disk volume: %q\n", volumeID))
 
 			diskSize := fmt.Sprintf("%dGi", defaultDiskSize)
 
@@ -287,7 +335,7 @@ var _ = ginkgo.Describe("Pre-Provisioned", func() {
 				CSIDriver:       testDriver,
 				AzureDiskDriver: azurediskDriver,
 				Pod:             pod,
-				VolumeContext:   resp.Volume.VolumeContext,
+				VolumeContext:   volumeContext,
 			}
 			test.Run(ctx, cs, ns)
 		})

@@ -1,0 +1,33 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-qad-static
+spec:
+  # RWO disk can only attach to one node, so keep a single replica.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-qad-static
+  template:
+    metadata:
+      labels:
+        app: nginx-qad-static
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      containers:
+        - image: mcr.microsoft.com/mirror/docker/library/nginx:1.23
+          name: nginx-qad-static
+          command:
+            - "/bin/sh"
+            - "-c"
+            - while true; do echo $(date) >> /mnt/azuredisk/outfile; sleep 1; done
+          volumeMounts:
+            - name: azuredisk
+              mountPath: "/mnt/azuredisk"
+              readOnly: false
+      volumes:
+        - name: azuredisk
+          persistentVolumeClaim:
+            claimName: pvc-qad-static
