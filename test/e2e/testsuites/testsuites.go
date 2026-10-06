@@ -62,7 +62,7 @@ import (
 
 const (
 	// Some pods can take much longer to get ready due to volume attach/detach latency.
-	slowPodStartTimeout = 15 * time.Minute
+	slowPodStartTimeout = 5 * time.Minute
 	// Description that will printed during tests
 	failedConditionDescription = "Error status code"
 
@@ -983,7 +983,7 @@ func (t *TestPod) Create(ctx context.Context) {
 }
 
 func (t *TestPod) WaitForSuccess(ctx context.Context) {
-	err := e2epod.WaitForPodSuccessInNamespaceTimeout(ctx, t.client, t.pod.Name, t.namespace.Name, 15*time.Minute)
+	err := e2epod.WaitForPodSuccessInNamespaceTimeout(ctx, t.client, t.pod.Name, t.namespace.Name, 5*time.Minute)
 	framework.ExpectNoError(err)
 }
 

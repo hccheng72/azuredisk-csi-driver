@@ -112,7 +112,7 @@ parameters:
   {{- end }}
   tags: {{ .Values.snapshot.VolumeSnapshotClass.parameters.tags }}
 {{- with .Values.snapshot.VolumeSnapshotClass.additionalLabels }}
-additionalLabels:
+additionalLabels: 
 {{ toYaml . | indent 2 }}
 {{- end }}
 {{- end -}}

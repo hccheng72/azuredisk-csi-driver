@@ -18,13 +18,17 @@ package testsuites
 
 import (
 	"context"
+	"strings"
 
+	"sigs.k8s.io/azuredisk-csi-driver/pkg/azureconstants"
 	"sigs.k8s.io/azuredisk-csi-driver/pkg/azuredisk"
 	"sigs.k8s.io/azuredisk-csi-driver/test/e2e/driver"
 
 	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 // DynamicallyProvisionedReclaimPolicyTest will provision required PV(s) and PVC(s)
@@ -42,6 +46,19 @@ func (t *DynamicallyProvisionedReclaimPolicyTest) Run(ctx context.Context, clien
 		volumeBindingMode := storagev1.VolumeBindingImmediate
 		volume.VolumeBindingMode = &volumeBindingMode
 		tpvc, _ := volume.SetupDynamicPersistentVolumeClaim(ctx, client, namespace, t.CSIDriver, t.StorageClassParameters)
+
+		if strings.EqualFold(t.StorageClassParameters[azureconstants.QADEnabledField], "true") {
+			pv := tpvc.persistentVolume.DeepCopy()
+			if pv.Annotations == nil {
+				pv.Annotations = map[string]string{}
+			}
+			pv.Annotations[azureconstants.AttachSequenceAnnotation] = "0"
+			pv.Annotations[azureconstants.BlobURLAnnotation] = pv.Spec.CSI.VolumeAttributes[azureconstants.BlobURLAnnotation]
+			pv.Annotations[azureconstants.ClaimIdentifierAnnotation] = pv.Spec.CSI.VolumeAttributes[azureconstants.ClaimIdentifierAnnotation]
+			var err error
+			tpvc.persistentVolume, err = client.CoreV1().PersistentVolumes().Update(ctx, pv, metav1.UpdateOptions{})
+			framework.ExpectNoError(err)
+		}
 
 		// will delete the PVC
 		// will also wait for PV to be deleted when reclaimPolicy=Delete
